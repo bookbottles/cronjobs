@@ -6,9 +6,11 @@ This repository, named "cronjobs", focuses on managing cronjobs and long-living 
 
 ## Installation
 To get started, clone the repository and install its dependencies:
-`git clone https://github.com/bookbottles/cronjobs.git`
-`cd cronjobs`
-`npm install`
+```bash
+git clone https://github.com/bookbottles/cronjobs.git
+cd cronjobs
+npm install
+```
 
 ## Configuration
 Ensure the following environment variables are set in your `.env` file before running the project:
