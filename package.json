@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Vemos cronjobs and long living services",
   "scripts": {
-    "start": "./src/index.js"
+    "start": "src/index.js"
   },
   "type": "module",
   "author": "Vemos",
   "dependencies": {
     "agenda": "^5.0.0",
     "axios": "^1.6.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "mongoose": "^8.0.1"
   }
 }
