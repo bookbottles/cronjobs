@@ -1,4 +1,4 @@
-import { createVemospayApi_v2 } from '../api/vemospayApiV2.js';
+import { createVemospayApi_v2 } from '../apiClients/vemospayApiV2.js';
 
 export async function syncTicketsJob(job) {
 	// Retrieve the job name from the job object
