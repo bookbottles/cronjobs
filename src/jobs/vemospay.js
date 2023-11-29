@@ -6,7 +6,7 @@ export async function syncTicketsJob(job) {
 
 	console.log(`time=${new Date().toISOString()} action=${jobName} status=started`);
 	try {
-		const ticketRes = await createVemospayApi_v2().syncTickets('open');
+		const ticketRes = await createVemospayApi_v2().syncTickets();
 		console.log(`>> time=${new Date().toISOString()} action=${jobName} status=success`, JSON.stringify(ticketRes));
 	} catch (error) {
 		console.error(`<< time=${new Date().toISOString()} action=${jobName} status=error`, JSON.stringify(error));
