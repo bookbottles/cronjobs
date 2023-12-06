@@ -16,10 +16,15 @@ export function createVemospayApi_v2() {
 		headers: commonHeaders
 	});
 
-	async function syncTickets(targetStatus) {
-		const { data } = await client.post(`${V2_PATH}/tickets/sync`, { targetStatus });
+	async function syncTickets() {
+		const { data } = await client.post(`${V2_PATH}/tickets/sync`, {});
 		return data;
 	}
 
-	return { syncTickets };
+	async function pullNewTickets() {
+		const { data } = await client.post(`${V2_PATH}/tickets/pull`, {});
+		return data;
+	}
+
+	return { syncTickets, pullNewTickets };
 }

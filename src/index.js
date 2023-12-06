@@ -1,6 +1,6 @@
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
-import { syncTicketsJob } from './jobs/vemospay.js';
+import { syncTicketsJob, pullNewTicketsJob } from './jobs/vemospay.js';
 import express from 'express';
 
 dotenv.config();
@@ -28,8 +28,13 @@ async function main() {
 	console.log('Agenda started!');
 
 	console.log('Defining jobs...');
-	await agenda.define('CREATE_TICKET', { priority: 'high', concurrency: 10 }, syncTicketsJob);
-	await agenda.every('1 minute', 'CREATE_TICKET');
+	/* Sync existing tickets */
+	await agenda.define('SYNC_TICKETS', { priority: 'high', concurrency: 10 }, syncTicketsJob);
+	await agenda.every('1 minute', 'SYNC_TICKETS');
+
+	/* Pull new tickets */
+	await agenda.define('PULL_NEW_TICKETS', { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
+	await agenda.every('1 minute', 'PULL_NEW_TICKETS');
 	console.log('Jobs defined!');
 }
 

@@ -12,3 +12,15 @@ export async function syncTicketsJob(job) {
 		console.error(`<< time=${new Date().toISOString()} action=${jobName} status=error`, JSON.stringify(error));
 	}
 }
+
+export async function pullNewTicketsJob(job) {
+	const jobName = job.attrs.name;
+
+	console.log(`time=${new Date().toISOString()} action=${jobName} status=started`);
+	try {
+		const ticketRes = await createVemospayApi_v2().pullNewTickets();
+		console.log(`>> time=${new Date().toISOString()} action=${jobName} status=success`, JSON.stringify(ticketRes));
+	} catch (error) {
+		console.error(`<< time=${new Date().toISOString()} action=${jobName} status=error`, JSON.stringify(error));
+	}
+}
