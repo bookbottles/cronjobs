@@ -1,9 +1,8 @@
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
+dotenv.config();
 import { closeTicketsJob, pullNewTicketsJob } from './jobs/tickets.jobs.js';
 import express from 'express';
-
-dotenv.config();
 
 async function setupHealthCheck() {
 	const app = express();
@@ -33,7 +32,7 @@ async function main() {
 
 	/* SCHEDULE JOBS */
 	await agenda.every('1 minute', 'PULL_NEW_TICKETS');
-	await agenda.every('1 minute', 'CLOSE_TICKETS');
+	await agenda.every('10 minute', 'CLOSE_TICKETS');
 }
 
 main();

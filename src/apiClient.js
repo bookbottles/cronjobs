@@ -27,5 +27,3 @@ export function ApiClient() {
 
 	return { closeTickets, pullNewTickets };
 }
-
-export const apiClient = ApiClient();
