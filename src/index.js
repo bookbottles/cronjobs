@@ -1,7 +1,7 @@
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
 dotenv.config();
-import { closeTicketsJob, pullNewTicketsJob } from './jobs/tickets.jobs.js';
+import { closeTicketsJob, pullNewTicketsJob, syncTicketsJob } from './jobs/tickets.jobs.js';
 import express from 'express';
 
 async function setupHealthCheck() {
