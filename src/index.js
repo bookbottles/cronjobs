@@ -27,11 +27,13 @@ async function main() {
 	console.log('Agenda started! 💩');
 
 	/* DEFINE JOBS */
-	// await agenda.define('PULL_NEW_TICKETS', { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
+	await agenda.define('PULL_NEW_TICKETS', { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
+	await agenda.define('SYNC_TICKETS', { priority: 'high', concurrency: 10 }, syncTicketsJob);
 	await agenda.define('CLOSE_TICKETS', { priority: 'high', concurrency: 10 }, closeTicketsJob);
 
 	/* SCHEDULE JOBS */
-	// await agenda.every('1 minute', 'PULL_NEW_TICKETS');
+	await agenda.every('1 minute', 'PULL_NEW_TICKETS');
+	await agenda.every('1 minute', 'SYNC_TICKETS');
 	await agenda.every('10 minute', 'CLOSE_TICKETS');
 }
 

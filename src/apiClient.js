@@ -20,10 +20,15 @@ export function ApiClient() {
 		return data;
 	}
 
+	async function syncExistingTickets() {
+		const { data } = await client.post(`/tickets/sync`, {});
+		return data;
+	}
+
 	async function closeTickets() {
 		const { data } = await client.post(`/tickets/close`, {});
 		return data;
 	}
 
-	return { closeTickets, pullNewTickets };
+	return { closeTickets, pullNewTickets, syncExistingTickets };
 }
