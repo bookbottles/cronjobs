@@ -29,7 +29,7 @@ async function main() {
 	/* DEFINE JOBS */
 	// await agenda.define('PULL_NEW_TICKETS', { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
 	await agenda.define('SYNC_TICKETS', { priority: 'high', concurrency: 10 }, syncTicketsJob);
-	await agenda.define('CLOSE_TICKETS', { priority: 'high', concurrency: 10 }, closeTicketsJob);
+	// await agenda.define('CLOSE_TICKETS', { priority: 'high', concurrency: 10 }, closeTicketsJob);
 
 	/* SCHEDULE JOBS */
 	// await agenda.every('1 minute', 'PULL_NEW_TICKETS');
