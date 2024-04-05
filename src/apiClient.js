@@ -11,7 +11,7 @@ export function ApiClient() {
 
 	const client = axios.create({
 		baseURL: BASE_URL,
-		timeout: 45000,
+		timeout: 60000 /* 1 minute */,
 		headers: commonHeaders
 	});
 
