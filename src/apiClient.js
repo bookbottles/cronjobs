@@ -25,10 +25,15 @@ export function ApiClient() {
 		return data;
 	}
 
-	async function closeTickets() {
-		const { data } = await client.post(`/tickets/close`, {});
+	async function closeTickets(venueId) {
+		const { data } = await client.post(`/tickets/close`, { venueId });
 		return data;
 	}
 
-	return { closeTickets, pullNewTickets, syncExistingTickets };
+	async function getVenues(filter = {}) {
+		const { data } = await client.get(`/venues`, { params: filter });
+		return data;
+	}
+
+	return { closeTickets, pullNewTickets, syncExistingTickets, getVenues };
 }

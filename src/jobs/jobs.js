@@ -24,13 +24,13 @@ export async function syncTicketsJob(job) {
 	}
 }
 
-export async function closeTicketsJob(job) {
-	// Retrieve the job name from the job object
+export async function closeVenueJob(job) {
 	const jobName = job.attrs.name;
+	const venueId = job.attrs.data.venueId;
 
 	console.log(`time=${new Date().toISOString()} action=${jobName} status=started`);
 	try {
-		const ticketRes = await ApiClient().closeTickets();
+		const ticketRes = await ApiClient().closeTickets(venueId);
 		console.log(`>>> time=${new Date().toISOString()} action=${jobName} status=success`, JSON.stringify(ticketRes));
 	} catch (error) {
 		console.error(`XX time=${new Date().toISOString()} action=${jobName} status=error`, JSON.stringify(error));
