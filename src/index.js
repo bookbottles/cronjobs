@@ -1,6 +1,6 @@
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
-import { syncTicketsJob, closeVenueJob } from './jobs/jobs.js';
+import { pullNewTicketsJob, syncTicketsJob, closeVenueJob } from './jobs/jobs.js';
 import express from 'express';
 import moment from 'moment-timezone';
 import { ApiClient } from './apiClient.js';
@@ -30,6 +30,7 @@ async function main() {
 	console.log('Agenda started! 💩');
 
 	/* DEFINE JOBS */
+	await agenda.define('PULL_NEW_TICKETS', { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
 	await agenda.define('SYNC_TICKETS', { priority: 'high', concurrency: 10 }, syncTicketsJob);
 	await agenda.define('CLOSE_VENUE', closeVenueJob);
 	await agenda.define('SCHEDULE_CLOSING_VENUE', async (job, done) => {
@@ -74,7 +75,7 @@ async function main() {
 	});
 
 	/* SCHEDULE JOBS */
-
+	await agenda.every('2 minutes', 'PULL_NEW_TICKETS');
 	await agenda.every('2 minutes', 'SYNC_TICKETS');
 	// Schedule the 'schedule closing tickets' job to run every day at 10 AM EST
 	await agenda.every('0 10 * * *', 'SCHEDULE_CLOSING_VENUE', {}, { timezone: 'America/New_York' });
