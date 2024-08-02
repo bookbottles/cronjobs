@@ -16,17 +16,17 @@ export function ApiClient() {
 	});
 
 	async function pullNewTickets() {
-		const { data } = await client.post(`/tickets/pull`, {});
+		const { data } = await client.post(`/orders/pull`, {});
 		return data;
 	}
 
 	async function syncExistingTickets() {
-		const { data } = await client.post(`/tickets/sync`, {});
+		const { data } = await client.post(`/orders/sync`, {});
 		return data;
 	}
 
 	async function closeTickets(venueId) {
-		const { data } = await client.post(`/tickets/close`, { venueId });
+		const { data } = await client.post(`/orders/close`, { venueId });
 		return data;
 	}
 
