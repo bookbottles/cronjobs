@@ -20,11 +20,6 @@ export function ApiClient() {
 		return data;
 	}
 
-	async function syncExistingTickets() {
-		const { data } = await client.post(`/orders/sync`, {});
-		return data;
-	}
-
 	async function closeTickets(venueId) {
 		const { data } = await client.post(`/orders/close`, { venueId });
 		return data;
@@ -35,5 +30,15 @@ export function ApiClient() {
 		return data;
 	}
 
-	return { closeTickets, pullNewTickets, syncExistingTickets, getVenues };
+	async function getOpenOrders() {
+		const { data } = await client.get(`/orders/open`);
+		return data;
+	}
+
+	async function syncTickets(orderId) {
+		const { data } = await client.post(`/orders/sync`, { orderId });
+		return data;
+	}
+
+	return { closeTickets, pullNewTickets, syncTickets, getVenues, getOpenOrders };
 }
