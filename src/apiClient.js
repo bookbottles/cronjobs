@@ -36,7 +36,7 @@ export function ApiClient() {
 	}
 
 	async function syncTickets(orderId) {
-		const { data } = await client.get(`/orders/sync/${orderId}`, {});
+		const { data } = await client.post(`/orders/sync`, { orderId });
 		return data;
 	}
 
