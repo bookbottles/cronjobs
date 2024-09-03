@@ -23,16 +23,16 @@ export async function pullNewOrdersJob(job) {
 	}
 }
 
-export async function syncTicketsJob(job) {
+export async function syncOrdersJob(job) {
 	const jobName = job.attrs.name;
 
 	console.log(`time= ${log_time}, action= ${jobName}, status= started`);
 	try {
 		const ordersOpen = await ApiClient().getOpenOrders();
 
-		const ticketRes = await paginateSyncOrders(ordersOpen);
+		const orderRes = await paginateSyncOrders(ordersOpen);
 
-		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ticketRes)}`);
+		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(orderRes)}`);
 	} catch (error) {
 		console.error(`XX time=${log_time}, action=${jobName}, status=error, message=${error.message}`);
 	}
@@ -44,8 +44,8 @@ export async function closeVenueJob(job) {
 
 	console.log(`time= ${log_time}, action= ${jobName}, status= started`);
 	try {
-		const ticketRes = await ApiClient().closeTickets(venueId);
-		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response = ${JSON.stringify(ticketRes)}`);
+		const orderRes = await ApiClient().closeOrders(venueId);
+		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response = ${JSON.stringify(orderRes)}`);
 	} catch (error) {
 		console.error(`XX time= ${log_time}, action= ${jobName}, status= error, message= ${error.message}`);
 	}
@@ -69,7 +69,7 @@ async function processSync(orders) {
 	const ordersSync = await Promise.all(
 		orders.map((order) =>
 			ApiClient()
-				.syncTickets(order._id)
+				.syncOrders(order._id)
 				.catch((err) => {
 					console.error(`Error syncing order ${order._id}: ${err.message}`);
 					return null;
@@ -84,7 +84,7 @@ async function processPull(venues) {
 	const ordersForVenues = await Promise.all(
 		venues.map(async (venue) =>
 			ApiClient()
-				.pullNewTickets(venue.id)
+				.pullNewOrders(venue.id)
 				.catch((err) => null)
 		)
 	);
