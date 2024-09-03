@@ -1,14 +1,23 @@
 import { ApiClient } from '../apiClient.js';
 const log_time = new Date().toISOString();
+const page = process.env.PAGE_SIZE || 10;
 
-export async function pullNewTicketsJob(job) {
+export async function pullNewOrdersJob(job) {
 	const jobName = job.attrs.name;
+	const ordersIds = [];
 
 	console.log(`time= ${log_time}, action= ${jobName}, status= started`);
-	try {
-		const ticketRes = await ApiClient().pullNewTickets();
 
-		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ticketRes)}`);
+	try {
+		const venues = await ApiClient().getVenues({ features: ['vemospay'] });
+
+		for (let i = 0; i < venues.length; i += page) {
+			const venuesForPull = venues.slice(i, i + page);
+			const ids = await processPull(venuesForPull);
+			ordersIds.push(...ids);
+		}
+
+		console.log(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ordersIds)}`);
 	} catch (error) {
 		console.error(`XX time= ${log_time}, action= ${jobName}, status= error, message= ${error.message}`);
 	}
@@ -68,6 +77,20 @@ async function processSync(orders) {
 		)
 	);
 
-	// Use the type predicate to filter out null values
 	return ordersSync.filter((order) => order !== null).map((order) => order._id);
+}
+
+async function processPull(venues) {
+	const ordersForVenues = await Promise.all(
+		venues.map(async (venue) =>
+			ApiClient()
+				.pullNewTickets(venue.id)
+				.catch((err) => null)
+		)
+	);
+
+	return ordersForVenues
+		.filter((order) => order !== null)
+		.map((order) => order.orderIds)
+		.flat();
 }

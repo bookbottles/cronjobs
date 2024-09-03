@@ -15,8 +15,8 @@ export function ApiClient() {
 		headers: commonHeaders
 	});
 
-	async function pullNewTickets() {
-		const { data } = await client.post(`/orders/pull`, {});
+	async function pullNewTickets(venueId) {
+		const { data } = await client.post(`/orders/pull`, { venueId });
 		return data;
 	}
 
@@ -26,7 +26,16 @@ export function ApiClient() {
 	}
 
 	async function getVenues(filter = {}) {
-		const { data } = await client.get(`/venues`, { params: filter });
+		let params = {};
+		if (filter) {
+			params = new URLSearchParams();
+
+			filter?.features.forEach((feature) => {
+				params.append('features', feature);
+			});
+		}
+
+		const { data } = await client.get(`/venues`, { params });
 		return data;
 	}
 
