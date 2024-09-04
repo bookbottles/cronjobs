@@ -15,18 +15,27 @@ export function ApiClient() {
 		headers: commonHeaders
 	});
 
-	async function pullNewTickets() {
-		const { data } = await client.post(`/orders/pull`, {});
+	async function pullNewOrders(venueId) {
+		const { data } = await client.post(`/orders/pull`, { venueId });
 		return data;
 	}
 
-	async function closeTickets(venueId) {
+	async function closeOrders(venueId) {
 		const { data } = await client.post(`/orders/close`, { venueId });
 		return data;
 	}
 
 	async function getVenues(filter = {}) {
-		const { data } = await client.get(`/venues`, { params: filter });
+		let params = {};
+		if (filter) {
+			params = new URLSearchParams();
+
+			filter?.features.forEach((feature) => {
+				params.append('features', feature);
+			});
+		}
+
+		const { data } = await client.get(`/venues`, { params });
 		return data;
 	}
 
@@ -35,10 +44,10 @@ export function ApiClient() {
 		return data;
 	}
 
-	async function syncTickets(orderId) {
+	async function syncOrders(orderId) {
 		const { data } = await client.post(`/orders/sync`, { orderId });
 		return data;
 	}
 
-	return { closeTickets, pullNewTickets, syncTickets, getVenues, getOpenOrders };
+	return { closeOrders, pullNewOrders, syncOrders, getVenues, getOpenOrders };
 }

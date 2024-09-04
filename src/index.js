@@ -1,6 +1,6 @@
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
-import { pullNewTicketsJob, syncTicketsJob, closeVenueJob } from './jobs/jobs.js';
+import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
 import express from 'express';
 import moment from 'moment-timezone';
 import { ApiClient } from './apiClient.js';
@@ -24,6 +24,8 @@ async function scheduleClosingVenue(job, done) {
 	try {
 		const today = moment().format('ddd').toLowerCase(); // Get today's day in lowercase
 		const venues = await ApiClient().getVenues(); // Assuming this fetches all venues
+
+		if (!venues) return;
 
 		venues.forEach((venue) => {
 			if (venue.hours && venue.hours.days[today].isOpen) {
@@ -73,14 +75,14 @@ async function main() {
 	console.log('Agenda started! 💩');
 
 	/* DEFINE JOBS */
-	agenda.define(JOBS_NAME.PULL_NEW_TICKETS, { priority: 'high', concurrency: 10 }, pullNewTicketsJob);
-	agenda.define(JOBS_NAME.SYNC_TICKETS, { priority: 'high', concurrency: 10 }, syncTicketsJob);
+	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, { priority: 'high', concurrency: 10 }, pullNewOrdersJob);
+	agenda.define(JOBS_NAME.SYNC_ORDERS, { priority: 'high', concurrency: 10 }, syncOrdersJob);
 	agenda.define(JOBS_NAME.CLOSE_VENUE, closeVenueJob);
 	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job, done) => scheduleClosingVenue(job, done));
 
 	/* SCHEDULE JOBS */
-	await agenda.every('2 minutes', JOBS_NAME.PULL_NEW_TICKETS);
-	await agenda.every('2 minutes', JOBS_NAME.SYNC_TICKETS);
+	await agenda.every('2 minutes', JOBS_NAME.PULL_NEW_ORDERS);
+	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
 	// Schedule the 'schedule closing tickets' job to run every day at 10 AM EST
 	await agenda.every('0 10 * * *', JOBS_NAME.SCHEDULE_CLOSING_VENUE, {}, { timezone: 'America/New_York' });
 
@@ -90,8 +92,8 @@ async function main() {
 main();
 
 const JOBS_NAME = {
-	PULL_NEW_TICKETS: 'PULL_NEW_TICKETS',
-	SYNC_TICKETS: 'SYNC_TICKETS',
+	PULL_NEW_ORDERS: 'PULL_NEW_ORDERS',
+	SYNC_ORDERS: 'SYNC_ORDERS',
 	CLOSE_VENUE: 'CLOSE_VENUE',
 	SCHEDULE_CLOSING_VENUE: 'SCHEDULE_CLOSING_VENUE'
 };
