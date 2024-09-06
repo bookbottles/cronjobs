@@ -1,4 +1,6 @@
+import moment from 'moment';
 import { ApiClient } from '../apiClient.js';
+import { PullOrderModel } from '../models/pullOrders.model.js';
 const log_time = new Date().toISOString();
 const page = process.env.PAGE_SIZE || 10;
 
@@ -59,6 +61,7 @@ async function paginateSyncOrders(orders, page = 15) {
 		const ordersToSync = orders.slice(i, i + page);
 		const ids = await processSync(ordersToSync);
 		ordersIds.push(...ids);
+		await sleep(100);
 	}
 
 	return ordersIds;
@@ -82,15 +85,42 @@ async function processSync(orders) {
 
 async function processPull(venues) {
 	const ordersForVenues = await Promise.all(
-		venues.map(async (venue) =>
-			ApiClient()
-				.pullNewOrders(venue.id)
-				.catch((err) => null)
-		)
+		venues.map(async (venue) => {
+			let lastXMinutes = 5;
+
+			const lastPull = await getLastPullDateByVenue(venue.id).catch(() => null);
+
+			if (lastPull) lastXMinutes = moment().diff(moment(lastPull.updatedAt), 'minutes');
+
+			const data = await ApiClient()
+				.pullNewOrders(venue.id, lastXMinutes)
+				.catch((err) => null);
+
+			if (!data) return null;
+
+			await saveLastPullDateByVenue(venue.id);
+
+			return data;
+		})
 	);
 
 	return ordersForVenues
 		.filter((order) => order !== null)
 		.map((order) => order.orderIds)
 		.flat();
+}
+
+async function getLastPullDateByVenue(venueId) {
+	const lastPullOrder = await PullOrderModel.findOne({ venueId });
+	if (!lastPullOrder) throw Error('Last Pull Order Not Found');
+	return lastPullOrder.toJSON();
+}
+
+async function saveLastPullDateByVenue(venueId) {
+	const pullOrder = await PullOrderModel.findOneAndUpdate({ venueId }, { venueId }, { upsert: true, new: true });
+	return pullOrder;
+}
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }

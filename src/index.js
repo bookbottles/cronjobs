@@ -4,6 +4,7 @@ import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
 import express from 'express';
 import moment from 'moment-timezone';
 import { ApiClient } from './apiClient.js';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ async function scheduleClosingVenue(job, done) {
 async function main() {
 	await setupHealthCheck();
 	console.log('Connecting DB...');
+	mongoose.connect(process.env.MONGO_DB_URL);
 	const agenda = new Agenda({ db: { address: process.env.MONGO_DB_URL } });
 	console.log('DB connected! 🔥');
 

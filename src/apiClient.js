@@ -15,8 +15,8 @@ export function ApiClient() {
 		headers: commonHeaders
 	});
 
-	async function pullNewOrders(venueId) {
-		const { data } = await client.post(`/orders/pull`, { venueId });
+	async function pullNewOrders(venueId, lastXMinutes = 5) {
+		const { data } = await client.post(`/orders/pull`, { venueId, lastXMinutes });
 		return data;
 	}
 
