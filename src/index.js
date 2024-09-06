@@ -2,9 +2,16 @@ import Agenda from 'agenda';
 import dotenv from 'dotenv';
 import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
 import express from 'express';
-import moment from 'moment-timezone';
 import { ApiClient } from './apiClient.js';
 import mongoose from 'mongoose';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(customParseFormat);
 
 dotenv.config();
 
@@ -23,31 +30,31 @@ async function setupHealthCheck() {
 // This function will schedule the closing of the venues based on their closing time
 async function scheduleClosingVenue(job, done) {
 	try {
-		const today = moment().format('ddd').toLowerCase(); // Get today's day in lowercase
+		const today = dayjs().format('ddd').toLowerCase(); // Get today's day in lowercase
 		const venues = await ApiClient().getVenues(); // Assuming this fetches all venues
 
 		if (!venues) return;
 
 		venues.forEach((venue) => {
 			if (venue.hours && venue.hours.days[today].isOpen) {
-				const openTime = moment(venue.hours.days[today].open, 'hhA');
-				const closeTime = moment(venue.hours.days[today].close, 'hhA');
+				const openTime = dayjs(venue.hours.days[today].open, 'hhA');
+				const closeTime = dayjs(venue.hours.days[today].close, 'hhA');
 				let scheduleTime;
 
 				if (closeTime.isBefore(openTime)) {
 					// Closes after midnight
-					scheduleTime = moment
+					scheduleTime = dayjs
 						.tz(
-							`${moment().add(1, 'days').format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
+							`${dayjs().add(1, 'days').format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
 							'YYYY-MM-DD hhA',
 							'America/New_York'
 						)
 						.toDate();
 				} else {
 					// Closes before midnight
-					scheduleTime = moment
+					scheduleTime = dayjs
 						.tz(
-							`${moment().format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
+							`${dayjs().format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
 							'YYYY-MM-DD hhA',
 							'America/New_York'
 						)

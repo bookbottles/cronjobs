@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { ApiClient } from '../apiClient.js';
 import { PullOrderModel } from '../models/pullOrders.model.js';
 const log_time = new Date().toISOString();
@@ -54,14 +54,13 @@ export async function closeVenueJob(job) {
 }
 
 // Paginates the orders array and synchronizes them with the PoS system
-async function paginateSyncOrders(orders, page = 15) {
+async function paginateSyncOrders(orders, page = 10) {
 	const ordersIds = [];
 
 	for (let i = 0; i < orders.length; i += page) {
 		const ordersToSync = orders.slice(i, i + page);
 		const ids = await processSync(ordersToSync);
 		ordersIds.push(...ids);
-		await sleep(100);
 	}
 
 	return ordersIds;
@@ -90,7 +89,7 @@ async function processPull(venues) {
 
 			const lastPull = await getLastPullDateByVenue(venue.id).catch(() => null);
 
-			if (lastPull) lastXMinutes = moment().diff(moment(lastPull.updatedAt), 'minutes');
+			if (lastPull) lastXMinutes = dayjs().diff(dayjs(lastPull.updatedAt), 'minutes');
 
 			const data = await ApiClient()
 				.pullNewOrders(venue.id, lastXMinutes)
@@ -119,8 +118,4 @@ async function getLastPullDateByVenue(venueId) {
 async function saveLastPullDateByVenue(venueId) {
 	const pullOrder = await PullOrderModel.findOneAndUpdate({ venueId }, { venueId }, { upsert: true, new: true });
 	return pullOrder;
-}
-
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
 }
