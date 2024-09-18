@@ -92,7 +92,7 @@ async function main() {
 	/* SCHEDULE JOBS */
 	await agenda.every('2 minutes', JOBS_NAME.PULL_NEW_ORDERS);
 	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
-	// Schedule the 'schedule closing tickets' job to run every day at 10 AM EST
+	/** Schedule the 'schedule closing tickets' job to run every day at 10 AM EST **/
 	await agenda.every('0 10 * * *', JOBS_NAME.SCHEDULE_CLOSING_VENUE, {}, { timezone: 'America/New_York' });
 
 	console.log('All scheduled jobs have been initialized.');

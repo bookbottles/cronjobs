@@ -54,8 +54,9 @@ export async function closeVenueJob(job) {
 }
 
 // Paginates the orders array and synchronizes them with the PoS system
-async function paginateSyncOrders(orders, page = 10) {
+async function paginateSyncOrders(posOrders, page = 10) {
 	const ordersIds = [];
+	const orders = posOrders.filter((order) => order.posTypes != 'toast');
 
 	for (let i = 0; i < orders.length; i += page) {
 		const ordersToSync = orders.slice(i, i + page);
@@ -84,23 +85,25 @@ async function processSync(orders) {
 
 async function processPull(venues) {
 	const ordersForVenues = await Promise.all(
-		venues.map(async (venue) => {
-			let lastXMinutes = 5;
+		venues
+			.filter((venue) => venue?.posTypes != 'toast')
+			.map(async (venue) => {
+				let lastXMinutes = 5;
 
-			const lastPull = await getLastPullDateByVenue(venue.id).catch(() => null);
+				const lastPull = await getLastPullDateByVenue(venue.id).catch(() => null);
 
-			if (lastPull) lastXMinutes = dayjs().diff(dayjs(lastPull.updatedAt), 'minutes');
+				if (lastPull) lastXMinutes = dayjs().diff(dayjs(lastPull.updatedAt), 'minutes');
 
-			const data = await ApiClient()
-				.pullNewOrders(venue.id, lastXMinutes)
-				.catch((err) => null);
+				const data = await ApiClient()
+					.pullNewOrders(venue.id, lastXMinutes)
+					.catch((err) => null);
 
-			if (!data) return null;
+				if (!data) return null;
 
-			await saveLastPullDateByVenue(venue.id);
+				await saveLastPullDateByVenue(venue.id);
 
-			return data;
-		})
+				return data;
+			})
 	);
 
 	return ordersForVenues
