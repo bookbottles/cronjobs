@@ -30,7 +30,7 @@ export function ApiClient() {
 		if (filter) {
 			params = new URLSearchParams();
 
-			filter?.features.forEach((feature) => {
+			filter?.features?.forEach((feature) => {
 				params.append('features', feature);
 			});
 		}
