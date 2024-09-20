@@ -56,7 +56,7 @@ export async function closeVenueJob(job) {
 // Paginates the orders array and synchronizes them with the PoS system
 async function paginateSyncOrders(posOrders, page = 10) {
 	const ordersIds = [];
-	const orders = posOrders.filter((order) => order.posTypes != 'toast');
+	const orders = posOrders.filter((order) => order.posType != 'toast');
 
 	for (let i = 0; i < orders.length; i += page) {
 		const ordersToSync = orders.slice(i, i + page);
@@ -86,7 +86,7 @@ async function processSync(orders) {
 async function processPull(venues) {
 	const ordersForVenues = await Promise.all(
 		venues
-			.filter((venue) => venue?.posTypes != 'toast')
+			.filter((venue) => venue?.posType != 'toast')
 			.map(async (venue) => {
 				let lastXMinutes = 5;
 
