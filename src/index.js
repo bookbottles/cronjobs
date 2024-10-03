@@ -1,13 +1,17 @@
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+import timezone from 'dayjs/plugin/timezone.js';
+import utc from 'dayjs/plugin/utc.js';
+import mongoose from 'mongoose';
+import express from 'express';
 import Agenda from 'agenda';
 import dotenv from 'dotenv';
-import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
-import express from 'express';
-import { ApiClient } from './apiClient.js';
-import mongoose from 'mongoose';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
-import timezone from 'dayjs/plugin/timezone.js';
-import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+
+import { JOBS_NAME, FEATURES, JOBS_TIME, LOG_MSG } from './common/constants.js';
+import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
+import { logger } from './common/logger.js';
+import { ApiClient } from './apiClient.js';
+import { config } from './common/config.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -18,91 +22,113 @@ dotenv.config();
 async function setupHealthCheck() {
 	const app = express();
 	app.get('/', (req, res) => {
-		res.send('App is running!');
+		res.send(LOG_MSG.API_RUNNING);
 	});
 
-	const PORT = process.env.PORT || 3000;
+	const PORT = config.nodePort || 3000;
+
 	app.listen(PORT, () => {
-		console.log(`Server is running on port ${PORT}`);
+		logger.info(`${LOG_MSG.SERVER_RUNNING} ${PORT}`);
 	});
 }
 
 // This function will schedule the closing of the venues based on their closing time
-async function scheduleClosingVenue(job, done) {
+async function scheduleClosingVenue(job, done, agenda) {
 	try {
-		const today = dayjs().format('ddd').toLowerCase(); // Get today's day in lowercase
-		const venues = await ApiClient().getVenues(); // Assuming this fetches all venues
+		const today = dayjs().format(JOBS_TIME.DAY_FORMAT).toLowerCase(); // Get today's day in lowercase
+		const venues = await ApiClient().getVenues({ features: FEATURES }); // Assuming this fetches all venues
 
 		if (!venues) return;
 
 		venues.forEach((venue) => {
-			if (venue.hours && venue.hours.days[today].isOpen) {
-				const openTime = dayjs(venue.hours.days[today].open, 'hhA');
-				const closeTime = dayjs(venue.hours.days[today].close, 'hhA');
+			if (venue?.hours && venue?.hours?.days?.[today].isOpen) {
+				const openTime = dayjs(venue.hours.days[today].open, JOBS_TIME.HOUR);
+				const closeTime = dayjs(venue.hours.days[today].close, JOBS_TIME.HOUR);
 				let scheduleTime;
 
 				if (closeTime.isBefore(openTime)) {
 					// Closes after midnight
 					scheduleTime = dayjs
 						.tz(
-							`${dayjs().add(1, 'days').format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
-							'YYYY-MM-DD hhA',
-							'America/New_York'
+							`${dayjs().add(1, JOBS_TIME.DAYS).format(JOBS_TIME.WEEK_FORMAT)} ${venue.hours.days[today].close}`,
+							JOBS_TIME.FORMAT,
+							JOBS_TIME.TIMEZONE
 						)
 						.toDate();
 				} else {
 					// Closes before midnight
 					scheduleTime = dayjs
 						.tz(
-							`${dayjs().format('YYYY-MM-DD')} ${venue.hours.days[today].close}`,
-							'YYYY-MM-DD hhA',
-							'America/New_York'
+							`${dayjs().format(JOBS_TIME.WEEK_FORMAT)} ${venue.hours.days[today].close}`,
+							JOBS_TIME.FORMAT,
+							JOBS_TIME.TIMEZONE
 						)
 						.toDate();
 				}
 
 				agenda.schedule(scheduleTime, JOBS_NAME.CLOSE_VENUE, { venueId: venue.id });
-				console.log(`Scheduled CLOSE_VENUE for venue ${venue.id} at ${scheduleTime}`);
+				logger.info(`${LOG_MSG.CLOSE_SCHEDULING} ${venue.id} at ${scheduleTime}`);
 			}
 		});
 	} catch (error) {
-		console.error('Error scheduling ON_VENUE_CLOSE:', error);
+		logger.error(error, `${LOG_MSG.ERROR_SCHEDULING} ${error?.message}`);
 	}
 
 	done();
 }
 
 async function main() {
-	await setupHealthCheck();
-	console.log('Connecting DB...');
-	mongoose.connect(process.env.MONGO_DB_URL);
-	const agenda = new Agenda({ db: { address: process.env.MONGO_DB_URL } });
-	console.log('DB connected! 🔥');
+	try {
+		await setupHealthCheck();
+		logger.info(LOG_MSG.HEALTH_CHECK);
 
-	console.log('Starting agenda...');
-	await agenda.start();
-	console.log('Agenda started! 💩');
+		// Connect to the database
+		logger.info(LOG_MSG.DB_CONNECTING);
+		await mongoose.connect(config.mongoUrl);
+		logger.info(LOG_MSG.DB_CONNECTED);
 
-	/* DEFINE JOBS */
-	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, { priority: 'high', concurrency: 10 }, pullNewOrdersJob);
-	agenda.define(JOBS_NAME.SYNC_ORDERS, { priority: 'high', concurrency: 10 }, syncOrdersJob);
+		// Initialize agenda
+		const agenda = new Agenda({ db: { address: config.mongoUrl } });
+		logger.info(LOG_MSG.AGENDA_STARTING);
+		await agenda.start();
+		logger.info(LOG_MSG.AGENDA_STARTED);
+
+		// Define jobs
+		defineJobs(agenda);
+
+		// Excecute jobs
+		await scheduleJobs(agenda);
+
+		logger.info(LOG_MSG.JOBS_INITIALIZED);
+	} catch (error) {
+		logger.error(error, LOG_MSG.ERROR_INITIALIZATION);
+		process.exit(1); // Exit the process with an error
+	}
+}
+
+function defineJobs(agenda) {
+	logger.info(LOG_MSG.JOBS_DEFINED);
+
+	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, { priority: 'high', concurrency: 1 }, pullNewOrdersJob);
+	agenda.define(JOBS_NAME.SYNC_ORDERS, { priority: 'high', concurrency: 1 }, syncOrdersJob);
 	agenda.define(JOBS_NAME.CLOSE_VENUE, closeVenueJob);
-	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job, done) => scheduleClosingVenue(job, done));
+	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job, done) => {
+		return scheduleClosingVenue(job, done, agenda);
+	});
 
-	/* SCHEDULE JOBS */
-	await agenda.every('2 minutes', JOBS_NAME.PULL_NEW_ORDERS);
-	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
-	/** Schedule the 'schedule closing tickets' job to run every day at 10 AM EST **/
-	await agenda.every('0 10 * * *', JOBS_NAME.SCHEDULE_CLOSING_VENUE, {}, { timezone: 'America/New_York' });
+	logger.info(LOG_MSG.JOBS_DEFINED_SUCCESS);
+}
 
-	console.log('All scheduled jobs have been initialized.');
+async function scheduleJobs(agenda) {
+	logger.info(LOG_MSG.JOBS_SCHEDULING);
+
+	await agenda.every(JOBS_TIME.THREE_MINUTES, JOBS_NAME.PULL_NEW_ORDERS);
+	await agenda.every(JOBS_TIME.TWO_MINUTES, JOBS_NAME.SYNC_ORDERS);
+
+	// Schedule the 'schedule closing tickets' job to run every day at 10 AM EST
+	await agenda.schedule(JOBS_TIME.EVERY_DAY_AT_10_AM, JOBS_NAME.SCHEDULE_CLOSING_VENUE, { timezone: JOBS_TIME.TIMEZONE });
+
+	logger.info(LOG_MSG.JOBS_SCHEDULING_SUCCESS);
 }
 
 main();
-
-const JOBS_NAME = {
-	PULL_NEW_ORDERS: 'PULL_NEW_ORDERS',
-	SYNC_ORDERS: 'SYNC_ORDERS',
-	CLOSE_VENUE: 'CLOSE_VENUE',
-	SCHEDULE_CLOSING_VENUE: 'SCHEDULE_CLOSING_VENUE'
-};

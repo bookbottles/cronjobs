@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+import { config } from './common/config.js';
+
 export function ApiClient() {
-	const BASE_URL = process.env.CRONJOBS_API;
-	const API_KEY = process.env.CRONJOBS_API_KEY;
+	const BASE_URL = config.cronjob.baseUrl;
+	const API_KEY = config.cronjob.apiKey;
 
 	const commonHeaders = {
 		'Content-Type': 'application/json',
