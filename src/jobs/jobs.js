@@ -4,12 +4,13 @@ import { PullOrderModel } from '../models/pullOrders.model.js';
 import { FEATURES, POS_TYPES } from '../common/constants.js';
 import { logger } from '../common/logger.js';
 import { ApiClient } from '../apiClient.js';
+import { config } from '../common/config.js';
 
 const log_time = new Date().toISOString();
-const page = process.env.PAGE_SIZE || 10;
 
 /*********************************** public functions ***********************************/
 export async function pullNewOrdersJob(job) {
+	const page = config.pageSize;
 	const jobName = job.attrs.name;
 	const ordersIds = [];
 
@@ -45,6 +46,7 @@ export async function pullNewOrdersJob(job) {
 }
 
 export async function syncOrdersJob(job) {
+	const page = config.pageSize;
 	const jobName = job.attrs.name;
 
 	logger.info(`time= ${log_time}, action= ${jobName}, status= started`);
@@ -151,9 +153,10 @@ async function _processPull(venues) {
 
 // Processes events for Clover places, receives a callback to process the events.
 async function _processEventsByClover(events, callback) {
+	const page = config.cloverPage;
 	const ordersIds = [];
-	for (let i = 0; i < events.length; i += 3) {
-		const eventsToProcess = events.slice(i, i + 3);
+	for (let i = 0; i < events.length; i += page) {
+		const eventsToProcess = events.slice(i, i + page);
 		const ids = await callback(eventsToProcess);
 		ordersIds.push(...ids);
 	}

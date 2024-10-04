@@ -32,5 +32,6 @@ export const config = {
 		secretAccessKey: env.AWS_SECRET_ACCESS_KEY || '',
 		region: env.AWS_REGION || 'us-east-1',
 		groupName: env.AWS_GROUP_NAME || 'SystemVemospay'
-	}
+	},
+	cloverPage: Number(env.CLOVER_PROCESS_PAGE) || 3
 };
