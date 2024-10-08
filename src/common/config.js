@@ -19,7 +19,7 @@ if (missingVariables.length > 0) {
 
 /**************************************************** */
 export const config = {
-	nodeEnv: env.NODE_ENV || 'development',
+	nodeEnv: env.NODE_ENV || 'dev',
 	nodePort: Number(env.PORT) || 3000,
 	pageSize: Number(env.PAGE_SIZE) || 10,
 	cronjob: {
