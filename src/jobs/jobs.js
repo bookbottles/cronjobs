@@ -153,6 +153,8 @@ async function _processPull(venues) {
 
 // Processes events for Clover places, receives a callback to process the events.
 async function _processEventsByClover(events, callback) {
+	if (config.nodeEnv != 'dev') return [];
+
 	const page = config.cloverPage;
 	const ordersIds = [];
 	for (let i = 0; i < events.length; i += page) {
