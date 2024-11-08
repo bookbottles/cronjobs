@@ -7,6 +7,7 @@ import { ApiClient } from '../apiClient.js';
 import { config } from '../common/config.js';
 
 const log_time = new Date().toISOString();
+const venueNotProcessed = [POS_TYPES.TOAST, POS_TYPES.CLOVER];
 
 /*********************************** public functions ***********************************/
 export async function pullNewOrdersJob(job) {
@@ -19,27 +20,24 @@ export async function pullNewOrdersJob(job) {
 	try {
 		const allVenues = await ApiClient().getVenues({ features: FEATURES });
 
-		// Remove Toast venues
-		const venues = allVenues.filter((venue) => venue?.posType != POS_TYPES.TOAST);
-
-		//Separate clover venues to process them separately
-		const cloverVenues = venues.filter((order) => order.posType === POS_TYPES.CLOVER);
-		const otherVenues = venues.filter((order) => order.posType !== POS_TYPES.CLOVER);
+		// Remove venues that are not processed
+		const venues = allVenues.venues.filter((venue) => !venueNotProcessed.includes(venue?.posType));
 
 		// Pull orders in batches of 10
-		for (let i = 0; i < otherVenues.length; i += page) {
-			const venuesForPull = otherVenues.slice(i, i + page);
+		for (let i = 0; i < venues.length; i += page) {
+			const venuesForPull = venues.slice(i, i + page);
 			const ids = await _processPull(venuesForPull);
 			ordersIds.push(...ids);
 		}
 
-		// Pull clover orders
-		const ids = await _processEventsByClover(cloverVenues, _processPull);
+		if (config.nodeEnv === 'dev') {
+			// Pull clover orders
+			const cloverVenues = allVenues.venues.filter((venue) => venue.posType === POS_TYPES.CLOVER);
+			const ids = await _processEventsByClover(cloverVenues, _processPull);
+			ordersIds.push(...ids);
+		}
 
-		// Concatenate the results
-		const orderRes = [...ordersIds, ...ids];
-
-		logger.info(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(orderRes)}`);
+		logger.info(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ordersIds)}`);
 	} catch (error) {
 		logger.error(`XX time= ${log_time}, action= ${jobName}, status= error, message= ${error.message}`);
 	}
@@ -54,27 +52,27 @@ export async function syncOrdersJob(job) {
 		const ordersIds = [];
 		const ordersOpen = await ApiClient().getOpenOrders();
 
-		// Remove Toast orders
-		const orders = ordersOpen.filter((order) => order.posType != POS_TYPES.TOAST);
-
-		//Separate clover orders to process them separately
-		const cloverOrders = orders.filter((order) => order.posType === POS_TYPES.CLOVER);
-		const otherOrders = orders.filter((order) => order.posType !== POS_TYPES.CLOVER);
+		// Remove venues that are not processed
+		const orders = ordersOpen.filter((order) => !venueNotProcessed.includes(order?.posType));
 
 		// Sync orders in batches of 10
-		for (let i = 0; i < otherOrders.length; i += page) {
-			const ordersToSync = otherOrders.slice(i, i + page);
+		for (let i = 0; i < orders.length; i += page) {
+			const ordersToSync = orders.slice(i, i + page);
 			const ids = await _processSync(ordersToSync);
 			ordersIds.push(...ids);
 		}
 
-		// Sync clover orders
-		const ids = await _processEventsByClover(cloverOrders, _processSync);
+		if (config.nodeEnv === 'dev') {
+			//Separate clover orders to process them separately
+			const cloverOrders = orders.filter((order) => order.posType === POS_TYPES.CLOVER);
 
-		// Concatenate the results
-		const orderRes = [...ordersIds, ...ids];
+			// Sync clover orders
+			const ids = await _processEventsByClover(cloverOrders, _processSync);
 
-		logger.info(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(orderRes)}`);
+			ordersIds.push(...ids);
+		}
+
+		logger.info(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ordersIds)}`);
 	} catch (error) {
 		logger.error(`XX time=${log_time}, action=${jobName}, status=error, message=${error.message}`);
 	}
