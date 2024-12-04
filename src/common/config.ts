@@ -1,18 +1,13 @@
 import dotenv from 'dotenv';
-
 dotenv.config();
+
 const env = process.env;
 
 /********************* VALIDATION *********************/
 const requiredVariables = ['CRONJOBS_API', 'CRONJOBS_API_KEY', 'MONGO_DB_URL'];
-
-const getMissingVariables = (requiredVariables, envVars) => {
-	return requiredVariables.filter((varName) => !envVars[varName]);
-};
-
 const missingVariables = getMissingVariables(requiredVariables, env);
 
-if (missingVariables.length > 0) {
+if (missingVariables.length) {
 	console.error(`[missing_variables_error]: Missing variables: ${JSON.stringify(missingVariables)}`);
 	process.exit();
 }
@@ -35,3 +30,7 @@ export const config = {
 	},
 	cloverPage: Number(env.CLOVER_PROCESS_PAGE) || 3
 };
+
+function getMissingVariables(requiredVariables: string[], envVars: any) {
+	return requiredVariables.filter((varName) => !envVars[varName]);
+}

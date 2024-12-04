@@ -3,15 +3,16 @@ import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
 import mongoose from 'mongoose';
 import express from 'express';
-import Agenda from 'agenda';
+import Agenda, { Job, JobPriority } from 'agenda';
 import dotenv from 'dotenv';
 import dayjs from 'dayjs';
 
-import { JOBS_NAME, FEATURES, JOBS_TIME, LOG_MSG } from './common/constants.js';
-import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from './jobs/jobs.js';
-import { logger } from './common/logger.js';
-import { ApiClient } from './apiClient.js';
-import { config } from './common/config.js';
+import { JOBS_NAME, FEATURES, JOBS_TIME, LOG_MSG } from '../common/constants';
+import { pullNewOrdersJob, syncOrdersJob, closeVenueJob } from '../jobs';
+import { logger } from '../common';
+import { ApiClient } from '../apiClient';
+import { config } from '../common/config.js';
+import { Venue } from '../types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,14 +34,14 @@ async function setupHealthCheck() {
 }
 
 // This function will schedule the closing of the venues based on their closing time
-async function scheduleClosingVenue(job, done, agenda) {
+async function scheduleClosingVenue(job: Job, done: any, agenda: Agenda) {
 	try {
 		const today = dayjs().format(JOBS_TIME.DAY_FORMAT).toLowerCase(); // Get today's day in lowercase
 		const venues = await ApiClient().getVenues({ features: FEATURES }); // Assuming this fetches all venues
 
 		if (!venues) return;
 
-		venues.forEach((venue) => {
+		venues.forEach((venue: Venue) => {
 			if (venue?.hours && venue?.hours?.days?.[today].isOpen) {
 				const openTime = dayjs(venue.hours.days[today].open, JOBS_TIME.HOUR);
 				const closeTime = dayjs(venue.hours.days[today].close, JOBS_TIME.HOUR);
@@ -50,7 +51,7 @@ async function scheduleClosingVenue(job, done, agenda) {
 					// Closes after midnight
 					scheduleTime = dayjs
 						.tz(
-							`${dayjs().add(1, JOBS_TIME.DAYS).format(JOBS_TIME.WEEK_FORMAT)} ${venue.hours.days[today].close}`,
+							`${dayjs().add(1, 'day').format(JOBS_TIME.WEEK_FORMAT)} ${venue.hours.days[today].close}`,
 							JOBS_TIME.FORMAT,
 							JOBS_TIME.TIMEZONE
 						)
@@ -70,7 +71,7 @@ async function scheduleClosingVenue(job, done, agenda) {
 				logger.info(`${LOG_MSG.CLOSE_SCHEDULING} ${venue.id} at ${scheduleTime}`);
 			}
 		});
-	} catch (error) {
+	} catch (error: any) {
 		logger.error(error, `${LOG_MSG.ERROR_SCHEDULING} ${error?.message}`);
 	}
 
@@ -96,7 +97,7 @@ async function main() {
 		// Define jobs
 		defineJobs(agenda);
 
-		// Excecute jobs
+		// Execute jobs
 		await scheduleJobs(agenda);
 
 		logger.info(LOG_MSG.JOBS_INITIALIZED);
@@ -106,20 +107,20 @@ async function main() {
 	}
 }
 
-function defineJobs(agenda) {
+function defineJobs(agenda: Agenda) {
 	logger.info(LOG_MSG.JOBS_DEFINED);
 
-	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, { priority: 'high', concurrency: 1 }, pullNewOrdersJob);
-	agenda.define(JOBS_NAME.SYNC_ORDERS, { priority: 'high', concurrency: 1 }, syncOrdersJob);
+	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, { priority: JobPriority.high, concurrency: 1 }, pullNewOrdersJob);
+	agenda.define(JOBS_NAME.SYNC_ORDERS, { priority: JobPriority.high, concurrency: 1 }, syncOrdersJob);
 	agenda.define(JOBS_NAME.CLOSE_VENUE, closeVenueJob);
-	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job, done) => {
+	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job: Job, done) => {
 		return scheduleClosingVenue(job, done, agenda);
 	});
 
 	logger.info(LOG_MSG.JOBS_DEFINED_SUCCESS);
 }
 
-async function scheduleJobs(agenda) {
+async function scheduleJobs(agenda: Agenda) {
 	logger.info(LOG_MSG.JOBS_SCHEDULING);
 
 	await agenda.every(JOBS_TIME.THREE_MINUTES, JOBS_NAME.PULL_NEW_ORDERS);

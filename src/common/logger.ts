@@ -1,13 +1,13 @@
 import dotenv from 'dotenv';
 import pino from 'pino';
 
-import { config } from './config.js';
+import { config } from './config';
 
 dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
-const targets = [
+const targets: any = [
 	{
 		target: 'pino-pretty',
 		options: {
@@ -37,11 +37,11 @@ const transport = pino.transport({
 });
 
 /* use console logger for local development */
-export const logger = nodeEnv === 'local' ? console : pino(transport).child({});
+export const logger: any = nodeEnv === 'local' ? console : pino(transport).child({});
 
 // Create a child logger with the traceId
-export const createChildLogger = (context) => {
+export const createChildLogger = (context: any) => {
 	if (nodeEnv === 'local') return console;
 
-	return logger.child({ ...context });
+	return logger.child(context);
 };

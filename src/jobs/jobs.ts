@@ -1,16 +1,18 @@
+import { Job } from 'agenda';
 import dayjs from 'dayjs';
 
-import { PullOrderModel } from '../models/pullOrders.model.js';
 import { FEATURES, POS_TYPES } from '../common/constants.js';
 import { logger } from '../common/logger.js';
-import { ApiClient } from '../apiClient.js';
 import { config } from '../common/config.js';
+import { ApiClient } from '../apiClient.js';
+import { PullOrderModel } from '../models';
+import { Venue } from '../types';
 
 const log_time = new Date().toISOString();
 const venueNotProcessed = [POS_TYPES.TOAST, POS_TYPES.CLOVER];
 
 /*********************************** public functions ***********************************/
-export async function pullNewOrdersJob(job) {
+export async function pullNewOrdersJob(job: Job) {
 	const page = config.pageSize;
 	const jobName = job.attrs.name;
 	const ordersIds = [];
@@ -32,7 +34,7 @@ export async function pullNewOrdersJob(job) {
 
 		if (config.nodeEnv === 'dev') {
 			// Pull clover orders
-			const cloverVenues = allVenues.venues.filter((venue) => venue.posType === POS_TYPES.CLOVER);
+			const cloverVenues = allVenues.venues.filter((venue: Venue) => venue.posType === POS_TYPES.CLOVER);
 			const ids = await _processEventsByClover(cloverVenues, _processPull);
 			ordersIds.push(...ids);
 		}
@@ -43,7 +45,7 @@ export async function pullNewOrdersJob(job) {
 	}
 }
 
-export async function syncOrdersJob(job) {
+export async function syncOrdersJob(job: Job) {
 	const page = config.pageSize;
 	const jobName = job.attrs.name;
 
@@ -78,7 +80,7 @@ export async function syncOrdersJob(job) {
 	}
 }
 
-export async function closeVenueJob(job) {
+export async function closeVenueJob(job: Job) {
 	const jobName = job.attrs.name;
 	const venueId = job.attrs.data.venueId;
 
@@ -93,7 +95,7 @@ export async function closeVenueJob(job) {
 
 /*********************************** private functions ***********************************/
 // Retrieves the last pull date for a venue
-async function _getLastPullDateByVenue(venueId) {
+async function _getLastPullDateByVenue(venueId: string) {
 	const lastPullOrder = await PullOrderModel.findOne({ venueId });
 	if (!lastPullOrder) throw Error('Last Pull Order Not Found');
 	return lastPullOrder.toJSON();
