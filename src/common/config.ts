@@ -29,7 +29,7 @@ export const config = {
 		groupName: env.AWS_GROUP_NAME || 'SystemVemospay'
 	},
 	cloverPage: Number(env.CLOVER_PROCESS_PAGE) || 3,
-	excludedSyncPOS: ['clover']
+	excludedSyncPOS: env.EXCLUDED_POS ? env.EXCLUDED_POS.split(',') : ['clover', 'toast']
 };
 
 function getMissingVariables(requiredVariables: string[], envVars: any) {
