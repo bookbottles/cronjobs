@@ -48,7 +48,9 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 
 	await agenda.every('3 minutes', JOBS_NAME.PULL_NEW_ORDERS);
 	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
-	await agenda.schedule(JOBS_TIME.EVERY_DAY_AT_10_AM, JOBS_NAME.SCHEDULE_CLOSING_VENUE, { timezone: 'America/Chicago' });
+
+	/* schedule close venue job at 3pm utc every day */
+	await agenda.schedule('0 15 * * *', JOBS_NAME.SCHEDULE_CLOSING_VENUE, {});
 
 	return agenda;
 }
