@@ -19,6 +19,7 @@ async function main() {
 
 	const scheduler = await scheduleTasks(tasks, apiClient);
 	setupAPI(scheduler);
+	console.log(`Initialized successfully! - Server time: ${new Date()}`);
 }
 
 /* Health check endpoint required by heroku */
