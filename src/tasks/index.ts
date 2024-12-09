@@ -72,7 +72,6 @@ export function createTasks(apiClient: ApiClient): Tasks {
 
 		const data = await apiClient.pullNewOrders(venue.id, minutesAgo);
 		await _updateLastPullDate(venue.id);
-		console.debug(data);
 		return data;
 	}
 

@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@serdnam/pino-cloudwatch-transport": "^1.0.4",
 		"agenda": "^5.0.0",
+		"agendash": "^4.0.0",
 		"axios": "^1.7.5",
 		"dayjs": "^1.11.13",
 		"dotenv": "^16.3.1",

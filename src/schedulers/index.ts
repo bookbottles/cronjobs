@@ -1,7 +1,6 @@
 import Agenda, { Job } from 'agenda';
 import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import dayjs from 'dayjs';
 
@@ -19,7 +18,7 @@ dayjs.extend(customParseFormat);
 
 dotenv.config();
 
-export async function scheduleTasks(mongo: mongoose.mongo.MongoClient, tasks: Tasks, apiClient: ApiClient) {
+export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise<Agenda> {
 	const agenda = new Agenda({ db: { address: config.mongoUrl } });
 	await agenda.start();
 
@@ -48,12 +47,14 @@ export async function scheduleTasks(mongo: mongoose.mongo.MongoClient, tasks: Ta
 	await agenda.every(JOBS_TIME.THREE_MINUTES, JOBS_NAME.PULL_NEW_ORDERS);
 	await agenda.every(JOBS_TIME.TWO_MINUTES, JOBS_NAME.SYNC_ORDERS);
 	await agenda.schedule(JOBS_TIME.EVERY_DAY_AT_10_AM, JOBS_NAME.SCHEDULE_CLOSING_VENUE, { timezone: 'America/Chicago' });
+
+	return agenda;
 }
 
 function _getScheduleTime(venue: Venue): Date {
 	const tz = venue.hours?.timezone || 'America/Chicago';
 	const today = dayjs().format('ddd').toLowerCase(); // Get today's day in lowercase
-	const venueToday = venue.hours?.days[today];
+	const venueToday = (venue.hours?.days || {})[today];
 
 	if (!venueToday) throw new Error(`Venue ${venue.id} hasn't defined hours for today`);
 
