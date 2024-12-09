@@ -4,10 +4,9 @@ import { Order, PayOrderParams, Venue, VenuesFilter } from './types';
 export interface ApiClient {
 	getVenues: (filter: VenuesFilter) => Promise<Venue[]>;
 	getOrders: (filter: any) => Promise<Order[]>;
-	syncOrders: (orderId: string) => Promise<Order>;
-	closeOrders: (venueId: string) => Promise<Order[]>;
-	pullNewOrders: (venueId: string, lastXMinutes: number) => Promise<Order[]>;
-	getOpenOrders: () => Promise<Order[]>;
+	syncOrder: (order: Order) => Promise<Order>;
+	closeOrder: (orderId: string) => Promise<void>;
+	pullNewOrders: (venueId: string, lastXMinutes: number) => Promise<string[]>;
 	systemPayOrder: (params: PayOrderParams) => Promise<Order>;
 }
 
@@ -26,21 +25,6 @@ export function ApiClient(config: any): ApiClient {
 		headers: commonHeaders
 	});
 
-	async function getOrders(filter: any) {
-		const { data } = await client.get(`/orders`, { params: filter });
-		return data;
-	}
-
-	async function pullNewOrders(venueId: string, lastXMinutes = 5) {
-		const { data } = await client.post(`/orders/pull`, { venueId, lastXMinutes });
-		return data;
-	}
-
-	async function closeOrders(venueId: string) {
-		const { data } = await client.post(`/orders/close`, { venueId });
-		return data;
-	}
-
 	async function getVenues(filter: VenuesFilter): Promise<Venue[]> {
 		let params: any = {};
 		if (filter) {
@@ -52,16 +36,26 @@ export function ApiClient(config: any): ApiClient {
 		}
 
 		const { data } = await client.get(`/venues`, { params });
+		return data.venues;
+	}
+
+	async function getOrders(filter: any) {
+		const { data } = await client.get(`/orders`, { params: filter });
+		return data.orders;
+	}
+
+	async function pullNewOrders(venueId: string, lastXMinutes = 5) {
+		const { data } = await client.post(`/orders/pull`, { venueId, lastXMinutes });
+		return data.orderIds as string[];
+	}
+
+	async function closeOrder(orderId: string) {
+		const { data } = await client.post(`/orders/close`, { orderId });
 		return data;
 	}
 
-	async function getOpenOrders() {
-		const { data } = await client.get(`/orders/open`);
-		return data;
-	}
-
-	async function syncOrders(orderId: string) {
-		const { data } = await client.post(`/orders/sync`, { orderId });
+	async function syncOrder(order: Order) {
+		const { data } = await client.post(`/orders/sync`, { orderId: order._id });
 		return data;
 	}
 
@@ -70,5 +64,5 @@ export function ApiClient(config: any): ApiClient {
 		return data;
 	}
 
-	return { closeOrders, pullNewOrders, syncOrders, getVenues, getOpenOrders, systemPayOrder };
+	return { getOrders, closeOrder, pullNewOrders, syncOrder, getVenues, systemPayOrder };
 }

@@ -1,39 +1,93 @@
+import dayjs from 'dayjs';
+
+import { PullOrderModel } from '../models';
 import { ApiClient } from '../apiClient';
+import { config } from '../common';
+import { Venue } from '../types';
 
-export function createTasks(apiClient: ApiClient) {
-	export async function syncOpenOrders() {
-		// const page = config.pageSize;
-		// const jobName = job.attrs.name;
+export interface Tasks {
+	syncOrders: () => Promise<any>;
+	pullPosOrders: () => Promise<any>;
+	closeVenue: (venueId: string) => Promise<any>;
+}
 
-		// try {
-		const ordersIds = [];
-		const orders = await apiClient.getOrders({ status: 'open' });
+const excludedPOS = config.excludedSyncPOS;
 
-		// Remove venues that are not processed
-		const orders = ordersOpen.filter((order) => !venueNotProcessed.includes(order?.posType));
+export function createTasks(apiClient: ApiClient): Tasks {
+	async function syncOrders() {
+		const batchSize = 10; // TODO: Move to config
+		const syncedIds: string[] = [];
 
-		// Sync orders in batches of 10
-		for (let i = 0; i < orders.length; i += page) {
-			const ordersToSync = orders.slice(i, i + page);
-			const ids = await _processSync(ordersToSync);
-			ordersIds.push(...ids);
+		const openOrders = await apiClient.getOrders({ statusList: 'open' });
+		// Some pos types have an active webhook that syncs orders in real-time, we should exclude them
+		const orders = openOrders.filter((o) => !excludedPOS.includes(o?.posType));
+
+		// Sync orders in batches to avoid hitting the rate limit
+		for (let i = 0; i < orders.length; i += batchSize) {
+			const ordersToSync = orders.slice(i, i + batchSize);
+
+			const synced = await Promise.all(ordersToSync.map((o) => apiClient.syncOrder(o).catch(() => null)));
+
+			const ids = synced.map((o) => o?._id);
+			syncedIds.push(...ids);
 		}
 
-		if (config.nodeEnv === 'dev') {
-			//Separate clover orders to process them separately
-			const cloverOrders = orders.filter((order) => order.posType === POS_TYPES.CLOVER);
-
-			// Sync clover orders
-			const ids = await _processEventsByClover(cloverOrders, _processSync);
-
-			ordersIds.push(...ids);
-		}
-
-		// 	logger.info(`>>> time= ${log_time}, action= ${jobName}, status= success, response= ${JSON.stringify(ordersIds)}`);
-		// } catch (error) {
-		// 	logger.error(`XX time=${log_time}, action=${jobName}, status=error, message=${error.message}`);
-		// }
+		return syncedIds;
 	}
 
-	return { syncOpenOrders };
+	async function pullPosOrders() {
+		let newOrders: string[] = [];
+		const batchSize = 10; // TODO: Move to config
+		const minutesAgo = 5; // TODO: Move to config
+
+		const allVenues = await apiClient.getVenues({ features: ['vemospay'] });
+		const venues = allVenues.filter((v) => !excludedPOS.includes(v?.posType));
+
+		// Pull orders in batches to avoid hitting the rate limit
+		for (let i = 0; i < venues.length; i += batchSize) {
+			const batch = venues.slice(i, i + batchSize);
+			const res = await Promise.all(batch.map((v) => _pullVenueOrders(v, minutesAgo).catch(() => null)));
+			newOrders.push(...res.flat());
+		}
+
+		return newOrders;
+	}
+
+	async function closeVenue(venueId: string) {
+		/* 1. Pay and close all open orders on the venue */
+		const openOrders = await apiClient.getOrders({ statusList: 'open', venueIds: [venueId] });
+		let closeOrders = [];
+		for (const order of openOrders) {
+			const res = await apiClient.closeOrder(order._id).catch(() => null);
+			if (res) closeOrders.push(order._id);
+		}
+
+		return closeOrders;
+	}
+
+	/**** helper functions ****/
+	async function _pullVenueOrders(venue: Venue, minutesAgo: number) {
+		const lastPull = await _getLastPullDate(venue.id).catch(() => null);
+		if (lastPull) minutesAgo = dayjs().diff(dayjs(lastPull.updatedAt), 'minutes');
+
+		const data = await apiClient.pullNewOrders(venue.id, minutesAgo);
+		await _updateLastPullDate(venue.id);
+		console.debug(data);
+		return data;
+	}
+
+	// Retrieves the last pull date for a venue
+	async function _getLastPullDate(venueId: string) {
+		const lastPullOrder = await PullOrderModel.findOne({ venueId });
+		if (!lastPullOrder) throw Error('Last Pull Order Not Found');
+		return lastPullOrder.toJSON();
+	}
+
+	// Saves the last pull date for a venue
+	async function _updateLastPullDate(venueId: string) {
+		const pullOrder = await PullOrderModel.findOneAndUpdate({ venueId }, { venueId }, { upsert: true, new: true });
+		return pullOrder;
+	}
+
+	return { syncOrders, pullPosOrders, closeVenue };
 }

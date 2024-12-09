@@ -3,7 +3,9 @@
 	"version": "1.0.0",
 	"description": "Eva is our assistant, she helps us to manage automatic tasks",
 	"scripts": {
-		"start": "node ./src/index.js"
+		"start": "tsx ./src/index.js",
+		"dev": "tsx watch ./src/index.js",
+		"type-check": "tsc --noEmit"
 	},
 	"type": "module",
 	"author": "Vemos",
@@ -14,11 +16,16 @@
 		"dayjs": "^1.11.13",
 		"dotenv": "^16.3.1",
 		"express": "^4.21.1",
-		"mongoose": "^8.0.1",
+		"mongoose": "^8.8.4",
 		"pino": "^9.4.0",
 		"pino-pretty": "^11.2.2"
 	},
 	"devDependencies": {
-		"@types/express": "^5.0.0"
-	}
+		"@types/express": "^5.0.0",
+		"@types/node": "^22.10.1",
+		"pkgroll": "^2.5.1",
+		"tsx": "^4.19.2",
+		"typescript": "^5.7.2"
+	},
+	"exports": "./dist/index.mjs"
 }

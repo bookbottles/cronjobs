@@ -28,7 +28,8 @@ export const config = {
 		region: env.AWS_REGION || 'us-east-1',
 		groupName: env.AWS_GROUP_NAME || 'SystemVemospay'
 	},
-	cloverPage: Number(env.CLOVER_PROCESS_PAGE) || 3
+	cloverPage: Number(env.CLOVER_PROCESS_PAGE) || 3,
+	excludedSyncPOS: ['clover']
 };
 
 function getMissingVariables(requiredVariables: string[], envVars: any) {

@@ -8,12 +8,8 @@ export const JOBS_NAME = {
 export const FEATURES = ['vemospay'];
 
 export const JOBS_TIME = {
-	FORMAT: 'YYYY-MM-DD hhA',
-	WEEK_FORMAT: 'YYYY-MM-DD',
 	DAY_FORMAT: 'ddd',
-	HOUR: 'hhA',
 	DAYS: 'days',
-	TIMEZONE: 'America/New_York',
 	TWO_MINUTES: '2 minutes',
 	THREE_MINUTES: '3 minutes',
 	FIVE_MINUTES: '5 minutes',
@@ -35,9 +31,7 @@ export const LOG_MSG = {
 	JOBS_SCHEDULING_SUCCESS: 'Jobs scheduled successfully.',
 	JOBS_INITIALIZED: 'All jobs have been defined and scheduled successfully.',
 	ERROR_INITIALIZATION: 'Error during initialization:',
-	ERROR_INITIALIZATION_EXIT: 'Exit the process with an error',
-	API_RUNNING: 'App is running!',
-	SERVER_RUNNING: 'Server is running on port'
+	ERROR_INITIALIZATION_EXIT: 'Exit the process with an error'
 };
 
 export const POS_TYPES = {
