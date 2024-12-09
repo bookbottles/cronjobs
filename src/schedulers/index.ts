@@ -24,7 +24,6 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 
 	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, tasks.pullPosOrders);
 	agenda.define(JOBS_NAME.SYNC_ORDERS, tasks.syncOrders);
-	agenda.define(JOBS_NAME.CLOSE_VENUE, (job: Job) => tasks.closeVenue(job.attrs.data.venueId));
 
 	/* schedule eon closing cronjob for all of the working venues */
 	agenda.define(JOBS_NAME.SCHEDULE_CLOSING_VENUE, async (job: Job, done) => {
@@ -34,7 +33,10 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 			for (const venue of venues) {
 				try {
 					const scheduleTime = _getScheduleTime(venue);
-					await agenda.schedule(scheduleTime, JOBS_NAME.CLOSE_VENUE, { venueId: venue.id });
+					const jobName = `${JOBS_NAME.CLOSE_VENUE}:${venue.id}`;
+
+					agenda.define(jobName, (job: Job) => tasks.closeVenue(job.attrs.data.venueId));
+					await agenda.schedule(scheduleTime, jobName, { venueId: venue.id });
 				} catch (err: any) {
 					logger.error(err, `Error scheduling ON_VENUE_CLOSE: ${err?.message}`);
 				}
@@ -44,8 +46,8 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 		}
 	});
 
-	await agenda.every(JOBS_TIME.THREE_MINUTES, JOBS_NAME.PULL_NEW_ORDERS);
-	await agenda.every(JOBS_TIME.TWO_MINUTES, JOBS_NAME.SYNC_ORDERS);
+	await agenda.every('3 minutes', JOBS_NAME.PULL_NEW_ORDERS);
+	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
 	await agenda.schedule(JOBS_TIME.EVERY_DAY_AT_10_AM, JOBS_NAME.SCHEDULE_CLOSING_VENUE, { timezone: 'America/Chicago' });
 
 	return agenda;

@@ -10,10 +10,6 @@ export const FEATURES = ['vemospay'];
 export const JOBS_TIME = {
 	DAY_FORMAT: 'ddd',
 	DAYS: 'days',
-	TWO_MINUTES: '2 minutes',
-	THREE_MINUTES: '3 minutes',
-	FIVE_MINUTES: '5 minutes',
-	TEN_MINUTES: '10 minutes',
 	EVERY_DAY_AT_10_AM: '0 10 * * *'
 };
 

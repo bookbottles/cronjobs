@@ -3,7 +3,8 @@
 	"version": "1.0.0",
 	"description": "Eva is our assistant, she helps us to manage automatic tasks",
 	"scripts": {
-		"start": "tsx ./src/index.js",
+		"start": "node ./dist/index.mjs",
+		"build": "pkgroll",
 		"dev": "tsx watch ./src/index.js",
 		"type-check": "tsc --noEmit"
 	},
