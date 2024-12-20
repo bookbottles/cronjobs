@@ -1,5 +1,6 @@
 import Agenda, { Job } from 'agenda';
 import timezone from 'dayjs/plugin/timezone.js';
+const localeData = require('dayjs/plugin/localeData');
 import utc from 'dayjs/plugin/utc.js';
 import dotenv from 'dotenv';
 import dayjs from 'dayjs';
@@ -15,6 +16,7 @@ import { Tasks } from '../tasks';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
+dayjs.extend(localeData);
 
 dotenv.config();
 
@@ -55,25 +57,25 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 	return agenda;
 }
 
-function _getScheduleTime(venue: Venue): Date {
+function _getScheduleTime(venue: Venue) {
 	const tz = venue.hours?.timezone || 'US/Central';
+
 	const today = dayjs().tz(tz);
 	const venueToday = (venue.hours?.days || {})[today.format('ddd').toLowerCase()];
 
 	if (!venueToday) throw new Error(`Venue ${venue.id} hasn't defined hours for today`);
 
 	/* assume format is hhmmAM */
-	let hours = Number(venueToday.close.slice(0, 2));
-	const minutes = Number(venueToday.close.slice(2, 4));
-	const ampm = venueToday.close.slice(4, 6);
+	let closeHours = Number(venueToday.close.split(':')[0]);
+	const closeMinutes = Number(venueToday.close.split(':')[1]);
+	const openHours = Number(venueToday.open.split(':')[0]);
 
-	/* if venue closes at 12AM, we need to convert it to 00:00 */
-	if (hours === 12 && ampm === 'AM') hours = 0;
+	let closeDate = today.startOf('day').add(closeHours, 'hours').add(closeMinutes, 'minutes');
 
-	let closeDate = today.startOf('day').add(hours, 'hours').add(minutes, 'minutes');
+	// if closes next day
+	if (closeHours < openHours) closeDate = closeDate.add(1, 'day');
 
-	if (ampm === 'PM') closeDate = closeDate.add(12, 'hours').add(5, 'minutes').tz(tz);
-	if (ampm === 'AM') closeDate = closeDate.add(1, 'day').add(5, 'minutes').tz(tz);
+	if (!closeDate.isValid()) throw new Error(`Invalid close date for venue ${venue.id}`);
 
 	return closeDate.toDate();
 }
