@@ -6,7 +6,6 @@ import { config } from './common';
 import { createTasks } from './tasks';
 import { ApiClient } from './apiClient';
 import { scheduleTasks } from './schedulers';
-import Agenda from 'agenda';
 
 async function main() {
 	const mongoose = await Mongoose.connect(config.mongoUrl, {
@@ -23,13 +22,15 @@ async function main() {
 }
 
 /* Health check endpoint required by heroku */
-async function setupAPI(agenda: Agenda) {
+async function setupAPI(agenda: any) {
 	const app = express();
 
 	app.get('/', (req, res) => {
 		res.send('App is running!');
 	});
+
 	// setup ui for agenda scheduler
+	agenda._collection = agenda.db.collection;
 	app.use('/dash', Agendash(agenda));
 
 	const PORT = config.nodePort || 3000;
