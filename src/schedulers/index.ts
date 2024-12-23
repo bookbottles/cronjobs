@@ -1,13 +1,13 @@
-import Agenda, { Job } from 'agenda';
-import timezone from 'dayjs/plugin/timezone.js';
-const localeData = require('dayjs/plugin/localeData');
-import utc from 'dayjs/plugin/utc.js';
-import dotenv from 'dotenv';
 import dayjs from 'dayjs';
+import dotenv from 'dotenv';
+import utc from 'dayjs/plugin/utc.js';
+import { Job, Agenda } from '@hokify/agenda';
+import timezone from 'dayjs/plugin/timezone.js';
+import localeData from 'dayjs/plugin/localeData.js';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 
 import { JOBS_NAME, LOG_MSG } from '../common/constants';
-import customParseFormat from 'dayjs/plugin/customParseFormat.js';
-import { config } from '../common/config.js';
+import { config } from '../common/config';
 import { ApiClient } from '../apiClient';
 import { logger } from '../common';
 import { Venue } from '../types';
@@ -21,23 +21,23 @@ dayjs.extend(localeData);
 dotenv.config();
 
 export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise<Agenda> {
-	const agenda = new Agenda({ db: { address: config.mongoUrl } });
+	const agenda = new Agenda({ defaultLockLimit: 0, db: { address: config.mongoUrl } });
 	await agenda.start();
 
 	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, tasks.pullPosOrders);
 	agenda.define(JOBS_NAME.SYNC_ORDERS, tasks.syncOrders);
 
 	/* schedule eon closing cronjob for all of the working venues */
-	agenda.define(JOBS_NAME.SCHEDULE_CLOSE_VENUES, async (job: Job, done) => {
+	agenda.define(JOBS_NAME.SCHEDULE_CLOSE_VENUES, async () => {
 		try {
 			const venues = await apiClient.getVenues({ features: ['vemospay'] });
 
 			for (const venue of venues) {
 				try {
 					const scheduleTime = _getScheduleTime(venue);
-					const jobName = `${JOBS_NAME.CLOSE_VENUE}:${venue.id}`;
-
-					agenda.define(jobName, (job: Job) => tasks.closeVenue(job.attrs.data.venueId));
+					const jobName = `${JOBS_NAME.CLOSE_VENUE}_${venue.id}`;
+					// agenda.jobs({ name: jobName }).then((jobs) => jobs.forEach((job) => job.remove()));
+					agenda.define(jobName, (job: Job<any>) => tasks.closeVenue(job.attrs.data.venueId));
 					await agenda.schedule(scheduleTime, jobName, { venueId: venue.id });
 				} catch (err: any) {
 					logger.error(err, `Error scheduling CLOSE_VENUE event ${err?.message}`);
@@ -52,7 +52,7 @@ export async function scheduleTasks(tasks: Tasks, apiClient: ApiClient): Promise
 	await agenda.every('2 minutes', JOBS_NAME.SYNC_ORDERS);
 
 	/* schedule close venue events every day */
-	await agenda.every('24 hours', JOBS_NAME.SCHEDULE_CLOSE_VENUES, {});
+	await agenda.every('24 hours', JOBS_NAME.SCHEDULE_CLOSE_VENUES);
 
 	return agenda;
 }

@@ -11,6 +11,7 @@
 	"type": "module",
 	"author": "Vemos",
 	"dependencies": {
+		"@hokify/agenda": "^6.3.0",
 		"@serdnam/pino-cloudwatch-transport": "^1.0.4",
 		"agenda": "^5.0.0",
 		"agendash": "^4.0.0",
