@@ -9,7 +9,7 @@ export async function scheduleTasks(tasks: Tasks): Promise<Agenda> {
 		defaultConcurrency: 200,
 		defaultLockLifetime: 5 * 60000, // 3 minutes
 		defaultLockLimit: 0, // no limit
-		db: { address: config.mongoUrl, collection: 'test' }
+		db: { address: config.mongoUrl }
 	});
 
 	await agenda.start();
