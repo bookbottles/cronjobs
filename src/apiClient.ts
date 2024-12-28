@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { Order, PayOrderParams, Venue, VenuesFilter } from './types';
+import { Order, PayOrderParams, Venue, VenueSearchOptions } from './types';
 
 export interface ApiClient {
-	getVenues: (filter: VenuesFilter) => Promise<Venue[]>;
+	getVenues: (filter: VenueSearchOptions) => Promise<Venue[]>;
 	getOrders: (filter: any) => Promise<Order[]>;
 	syncOrder: (order: Order) => Promise<Order>;
 	closeOrder: (orderId: string) => Promise<void>;
@@ -25,16 +25,7 @@ export function ApiClient(config: any): ApiClient {
 		headers: commonHeaders
 	});
 
-	async function getVenues(filter: VenuesFilter): Promise<Venue[]> {
-		let params: any = {};
-		if (filter) {
-			params = new URLSearchParams();
-
-			filter?.features?.forEach((feature) => {
-				params.append('features', feature);
-			});
-		}
-
+	async function getVenues(params: VenueSearchOptions): Promise<Venue[]> {
 		const { data } = await client.get(`/venues`, { params });
 		return data.venues;
 	}

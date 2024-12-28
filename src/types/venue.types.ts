@@ -45,6 +45,10 @@ type VenueDay = {
 	open: string;
 };
 
-export type VenuesFilter = {
-	features?: string[];
+export type VenueSearchOptions = {
+	ids?: string[] /* list of venue ids to filter by */;
+	limit?: number;
+	page?: number;
+	features?: string[] /* list of features to filter by: ['idscan', 'vemospay'] */;
+	posType?: string[];
 };

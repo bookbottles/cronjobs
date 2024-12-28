@@ -1,14 +1,16 @@
 import dayjs from 'dayjs';
+import _ from 'lodash';
 
+import { getClosingTime } from '../common/utils';
 import { PullOrderModel } from '../models';
 import { ApiClient } from '../apiClient';
 import { config } from '../common';
-import { Venue } from '../types';
+import { Order, Venue } from '../types';
 
 export interface Tasks {
 	syncOrders: () => Promise<any>;
 	pullPosOrders: () => Promise<any>;
-	closeVenue: (venueId: string) => Promise<any>;
+	closeVenues: () => Promise<any>;
 }
 
 const excludedPOS = config.excludedSyncPOS;
@@ -53,16 +55,39 @@ export function createTasks(apiClient: ApiClient): Tasks {
 		return newOrders;
 	}
 
-	async function closeVenue(venueId: string) {
-		/* 1. Pay and close all open orders on the venue */
-		const openOrders = await apiClient.getOrders({ statusList: 'open', venueIds: [venueId] });
-		let closeOrders = [];
-		for (const order of openOrders) {
-			const res = await apiClient.closeOrder(order._id).catch(() => null);
-			if (res) closeOrders.push(order._id);
-		}
+	async function closeVenues() {
+		try {
+			/* 1. Get open orders */
+			const openOrders = await apiClient.getOrders({ statusList: 'open' });
 
-		return closeOrders;
+			/* 2. Group orders by venue */
+			const venueOrders = _.groupBy(openOrders, 'venueId');
+			const ids = Object.keys(venueOrders);
+
+			/* 3. Get venues */
+			const venues = await apiClient.getVenues({ ids });
+
+			/* 4. Check closing time for each venue */
+			for (const venue of venues) {
+				const closingTime = getClosingTime(venue);
+				const now = dayjs();
+
+				/* close venues that closed in a 15 minutes ago range */
+				const diff = dayjs(closingTime).diff(now, 'minutes');
+				if (diff >= -15 && diff < 0) {
+					const orders = venueOrders[venue.id];
+					await closeOrdersBatchSync(orders);
+				}
+			}
+		} catch (err) {
+			console.error('closeVenues error', err);
+		}
+	}
+
+	async function closeOrdersBatchSync(orders: Order[]) {
+		for (const order of orders) {
+			await apiClient.closeOrder(order._id).catch((err) => console.error('closeOrder error', err));
+		}
 	}
 
 	/**** helper functions ****/
@@ -88,5 +113,5 @@ export function createTasks(apiClient: ApiClient): Tasks {
 		return pullOrder;
 	}
 
-	return { syncOrders, pullPosOrders, closeVenue };
+	return { syncOrders, pullPosOrders, closeVenues };
 }

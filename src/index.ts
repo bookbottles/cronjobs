@@ -1,14 +1,17 @@
 import Mongoose from 'mongoose';
-import express from 'express';
 import Agendash from 'agendash';
+import express from 'express';
+import dotenv from 'dotenv';
 
 import { config } from './common';
 import { createTasks } from './tasks';
 import { ApiClient } from './apiClient';
 import { scheduleTasks } from './schedulers';
 
+dotenv.config();
+
 async function main() {
-	const mongoose = await Mongoose.connect(config.mongoUrl, {
+	await Mongoose.connect(config.mongoUrl, {
 		serverSelectionTimeoutMS: 5000,
 		socketTimeoutMS: 45000
 	});
@@ -16,7 +19,7 @@ async function main() {
 	const apiClient = ApiClient(config);
 	const tasks = createTasks(apiClient);
 
-	const scheduler = await scheduleTasks(tasks, apiClient);
+	const scheduler = await scheduleTasks(tasks);
 	setupAPI(scheduler);
 	console.log(`Initialized successfully! - Server time: ${new Date()}`);
 }
