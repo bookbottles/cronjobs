@@ -12,25 +12,32 @@ dayjs.extend(customParseFormat);
 dayjs.extend(localeData);
 
 export function getClosingTime(venue: Venue) {
-	const tz = venue.hours?.timezone || 'US/Central';
+	const days = venue.hours.days || {};
+	const tz = venue.hours.timezone || 'US/Central';
+	const now = dayjs().tz(tz);
 
-	const today = dayjs().tz(tz);
-	const venueToday = (venue.hours?.days || {})[today.format('ddd').toLowerCase()];
+	if (now.hour() < 12) {
+		// if now is before noon it should be yesterday's closing time since it's after midnight
+		const yesterday = now.subtract(1, 'day');
+		const venueYesterday = days[yesterday.format('ddd').toLowerCase()];
+		if (!venueYesterday) return null;
 
-	if (!venueToday?.close) throw new Error(`Venue ${venue.id} hasn't defined hours for today`);
-	if (!venueToday?.isOpen) throw new Error(`Venue ${venue.id} is not open today`);
+		const [hYest, mYest] = venueYesterday.close.split(':');
+		const yesterdayClose = yesterday.set('hour', Number(hYest)).set('minute', Number(mYest));
 
-	/* assume format is hhmm 24h */
-	let closeHours = Number(venueToday.close.split(':')[0]);
-	const closeMinutes = Number(venueToday.close.split(':')[1]);
-	const openHours = venueToday.open ? Number(venueToday.open.split(':')[0]) : 14; // default to 2pm
+		if (Number(hYest) < 12) return yesterdayClose.add(1, 'day');
 
-	let closeDate = today.startOf('day').add(closeHours, 'hours').add(closeMinutes, 'minutes');
+		return yesterdayClose;
+	} else {
+		// if now is after noon, it should be either today's closing time or tomorrow's closing time
+		const venueToday = days[now.format('ddd').toLowerCase()];
+		if (!venueToday) return null;
 
-	// if closes next day
-	if (closeHours < openHours) closeDate = closeDate.add(1, 'day');
+		const [hToday, mToday] = venueToday.close.split(':');
+		const todayClose = now.set('hour', Number(hToday)).set('minute', Number(mToday));
 
-	if (!closeDate.isValid()) throw new Error(`Invalid close date for venue ${venue.id}`);
+		if (Number(hToday) < 12) return todayClose.add(1, 'day');
 
-	return closeDate.toDate();
+		return todayClose;
+	}
 }

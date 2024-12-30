@@ -13,6 +13,7 @@ export async function scheduleTasks(tasks: Tasks): Promise<Agenda> {
 	});
 
 	await agenda.start();
+	console.log('✅ Agenda started');
 
 	agenda.define(JOBS_NAME.PULL_NEW_ORDERS, tasks.pullPosOrders);
 	agenda.define(JOBS_NAME.SYNC_ORDERS, tasks.syncOrders);

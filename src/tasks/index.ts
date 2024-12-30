@@ -70,13 +70,27 @@ export function createTasks(apiClient: ApiClient): Tasks {
 			/* 4. Check closing time for each venue */
 			for (const venue of venues) {
 				const closingTime = getClosingTime(venue);
+				if (!closingTime) {
+					console.log(`⚠️ Closing time not found for venue ${venue.id} - ${venue.name}`);
+					continue;
+				}
+
 				const now = dayjs();
 
 				/* close venues that closed in a 15 minutes ago range */
-				const diff = dayjs(closingTime).diff(now, 'minutes');
+				const diff = closingTime.diff(now, 'minutes');
 				if (diff >= -15 && diff < 0) {
 					const orders = venueOrders[venue.id];
+
+					console.log(
+						`⏳ Closing ${orders.length} orders venue ${venue.id} - ${venue.name} at ${now.format('HH:mm')} ${
+							venue.hours.timezone
+						}`
+					);
+
 					await closeOrdersBatchSync(orders);
+
+					console.log(`✅ Closed ${orders.length} orders for venue ${venue.id} - ${venue.name}`);
 				}
 			}
 		} catch (err) {
