@@ -17,42 +17,50 @@ const excludedPOS = config.excludedSyncPOS;
 
 export function createTasks(apiClient: ApiClient): Tasks {
 	async function syncOrders() {
-		const batchSize = 10; // TODO: Move to config
-		const syncedIds: string[] = [];
+		try {
+			const batchSize = 10; // TODO: Move to config
+			const syncedIds: string[] = [];
 
-		const openOrders = await apiClient.getOrders({ statusList: 'open' });
-		// Some pos types have an active webhook that syncs orders in real-time, we should exclude them
-		const orders = openOrders.filter((o) => !excludedPOS.includes(o?.posType));
+			const openOrders = await apiClient.getOrders({ statusList: 'open' });
+			// Some pos types have an active webhook that syncs orders in real-time, we should exclude them
+			const orders = openOrders.filter((o) => !excludedPOS.includes(o?.posType));
 
-		// Sync orders in batches to avoid hitting the rate limit
-		for (let i = 0; i < orders.length; i += batchSize) {
-			const ordersToSync = orders.slice(i, i + batchSize);
+			// Sync orders in batches to avoid hitting the rate limit
+			for (let i = 0; i < orders.length; i += batchSize) {
+				const ordersToSync = orders.slice(i, i + batchSize);
 
-			const synced = await Promise.all(ordersToSync.map((o) => apiClient.syncOrder(o).catch(() => null)));
+				const synced = await Promise.all(ordersToSync.map((o) => apiClient.syncOrder(o).catch(() => null)));
 
-			const ids = synced.map((o) => o?._id);
-			syncedIds.push(...ids);
+				const ids = synced.map((o) => o?._id);
+				syncedIds.push(...ids);
+			}
+
+			return syncedIds;
+		} catch (err: any) {
+			console.log(`task error: syncOrders ::`, err);
 		}
-
-		return syncedIds;
 	}
 
 	async function pullPosOrders() {
-		let newOrders: string[] = [];
-		const batchSize = 10; // TODO: Move to config
-		const minutesAgo = 5; // TODO: Move to config
+		try {
+			let newOrders: string[] = [];
+			const batchSize = 10; // TODO: Move to config
+			const minutesAgo = 5; // TODO: Move to config
 
-		const allVenues = await apiClient.getVenues({ features: ['vemospay'] });
-		const venues = allVenues.filter((v) => !excludedPOS.includes(v?.posType));
+			const allVenues = await apiClient.getVenues({ features: ['vemospay'] });
+			const venues = allVenues.filter((v) => !excludedPOS.includes(v?.posType));
 
-		// Pull orders in batches to avoid hitting the rate limit
-		for (let i = 0; i < venues.length; i += batchSize) {
-			const batch = venues.slice(i, i + batchSize);
-			const res = await Promise.all(batch.map((v) => _pullVenueOrders(v, minutesAgo).catch(() => null)));
-			newOrders.push(...res.flat());
+			// Pull orders in batches to avoid hitting the rate limit
+			for (let i = 0; i < venues.length; i += batchSize) {
+				const batch = venues.slice(i, i + batchSize);
+				const res = await Promise.all(batch.map((v) => _pullVenueOrders(v, minutesAgo).catch(() => null)));
+				newOrders.push(...res.flat());
+			}
+
+			return newOrders;
+		} catch (err: any) {
+			console.log(`task error: pullPosOrders ::`, err);
 		}
-
-		return newOrders;
 	}
 
 	async function closeVenues() {
@@ -76,6 +84,7 @@ export function createTasks(apiClient: ApiClient): Tasks {
 				}
 
 				const now = dayjs();
+				const tz = venue.hours.timezone;
 
 				/* close venues that closed in a 15 minutes ago range */
 				const diff = closingTime.diff(now, 'minutes');
@@ -83,7 +92,7 @@ export function createTasks(apiClient: ApiClient): Tasks {
 					const orders = venueOrders[venue.id];
 
 					console.log(
-						`⏳ Closing ${orders.length} orders venue ${venue.id} - ${venue.name} at ${now.format('HH:mm')} ${
+						`⏳ Closing ${orders.length} orders venue ${venue.id} - ${venue.name} at ${now.tz(tz).format('HH:mm')} ${
 							venue.hours.timezone
 						}`
 					);
@@ -94,7 +103,7 @@ export function createTasks(apiClient: ApiClient): Tasks {
 				}
 			}
 		} catch (err) {
-			console.error('closeVenues error', err);
+			console.log(`task error: closeVenues ::`, err);
 		}
 	}
 
