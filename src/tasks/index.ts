@@ -92,14 +92,14 @@ export function createTasks(apiClient: ApiClient): Tasks {
 					const orders = venueOrders[venue.id];
 
 					console.log(
-						`⏳ Closing ${orders.length} orders venue ${venue.id} - ${venue.name} at ${now.tz(tz).format('HH:mm')} ${
+						`⏳ Closing ${orders?.length} orders venue ${venue.id} - ${venue.name} at ${now.tz(tz).format('HH:mm')} ${
 							venue.hours.timezone
 						}`
 					);
 
 					await closeOrdersBatchSync(orders);
 
-					console.log(`✅ Closed ${orders.length} orders for venue ${venue.id} - ${venue.name}`);
+					console.log(`✅ Closed ${orders?.length} orders for venue ${venue.id} - ${venue.name}`);
 				}
 			}
 		} catch (err) {
