@@ -67,6 +67,7 @@ export function createTasks(apiClient: ApiClient): Tasks {
 		try {
 			/* 1. Get open orders */
 			const openOrders = await apiClient.getOrders({ statusList: 'open' });
+			if (!openOrders?.length) return;
 
 			/* 2. Group orders by venue */
 			const venueOrders = _.groupBy(openOrders, 'venueId');
