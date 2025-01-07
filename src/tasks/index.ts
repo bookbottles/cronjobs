@@ -90,6 +90,13 @@ export function createTasks(apiClient: ApiClient): Tasks {
 				const diff = closingTime.diff(now, 'minutes');
 				if (diff >= -15 && diff < 0) {
 					const orders = venueOrders[venue.id];
+					if (!orders?.length) {
+						/* we still don't know why this happens but sometimes we get venues with no open orders */
+						console.log(
+							`⚠️ No open orders for venue ${venue.id} - ${venue.name}, venues length: ${venues.length} and ids length: ${ids.length}`
+						);
+						continue;
+					}
 
 					console.log(
 						`⏳ Closing ${orders?.length} orders venue ${venue.id} - ${venue.name} at ${now.tz(tz).format('HH:mm')} ${

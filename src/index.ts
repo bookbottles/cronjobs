@@ -12,7 +12,7 @@ dotenv.config();
 
 async function main() {
 	await Mongoose.connect(config.mongoUrl, {
-		serverSelectionTimeoutMS: 5000,
+		serverSelectionTimeoutMS: 50000,
 		socketTimeoutMS: 45000
 	});
 
