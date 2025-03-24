@@ -11,19 +11,19 @@ import { scheduleTasks } from './schedulers';
 dotenv.config();
 
 async function main() {
-	await Mongoose.connect(config.mongoUrl, {
-		serverSelectionTimeoutMS: 50000,
-		socketTimeoutMS: 45000
-	});
+	// await Mongoose.connect(config.mongoUrl, {
+	// 	serverSelectionTimeoutMS: 50000,
+	// 	socketTimeoutMS: 45000
+	// });
 
-	console.log('✅ Connected to MongoDB');
+	// console.log('✅ Connected to MongoDB');
 
-	const apiClient = ApiClient(config);
-	const tasks = createTasks(apiClient);
+	// const apiClient = ApiClient(config);
+	// const tasks = createTasks(apiClient);
 
-	const scheduler = await scheduleTasks(tasks);
-	setupAPI(scheduler);
-	console.log(`✅ Initialized successfully! - Server time: ${new Date()}`);
+	// const scheduler = await scheduleTasks(tasks);
+	// setupAPI(scheduler);
+	console.log(`✅ App down: ${new Date()}`);
 }
 
 /* Health check endpoint required by heroku */
